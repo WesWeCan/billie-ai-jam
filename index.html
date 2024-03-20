@@ -1,0 +1,378 @@
+<html>
+
+<head>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/webmidi@latest/dist/iife/webmidi.iife.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@magenta/music@^1.0.0"></script>
+
+    <link href="./fonts/Anthony.woff" rel="stylesheet">
+
+    <style>
+        @font-face {
+            font-family: 'Anthony';
+            src: url('./fonts/Anthony.woff') format('woff');
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Anthony', Arial, sans-serif;
+            color: #a78cff;
+            background-color: white;
+        }
+
+        #container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+
+        .visual {
+            width: 250px;
+            height: 250px;
+            background-color: #000;
+            margin: 10px;
+            border-radius: 50%;
+
+            transition: all 0.2s ease-in-out;
+            opacity: 1;
+
+            filter: blur(25px);
+
+            translate: 0 -4rem;
+        }
+
+
+        @keyframes breathe {
+            0% {
+                transform: scale(1);
+                filter: blur(25px);
+            }
+
+            15% {
+                transform: scale(1.1);
+                filter: blur(20px);
+            }
+
+            30% {
+                transform: scale(1);
+                filter: blur(15px);
+            }
+
+            45% {
+                transform: scale(0.9);
+                filter: blur(20px);
+            }
+
+            60% {
+                transform: scale(1);
+                filter: blur(25px);
+            }
+
+            100% {
+                transform: scale(1);
+                filter: blur(25px);
+            }
+        }
+
+        .visual {
+            animation: breathe 8s ease-in-out infinite;
+        }
+
+
+
+        #userPlaying {
+            background-color: #00f;
+            translate: 25% 0;
+        }
+
+        #aiPlaying {
+            background-color: #a78cff;
+        }
+
+
+        #status {
+            position: absolute;
+            bottom: 2.5rem;
+            right: 2.5rem;
+            font-size: 0.9em;
+            color: gray;
+            opacity: 0.5;
+            font-family: "Arial", sans-serif;
+        }
+
+        .billie-text {
+            text-align: center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            font-size: 2em;
+
+            transform: translate(-50%, calc(-50% - 3rem));
+        }
+
+        .billie-text span {
+            text-align: center;
+            display: none;
+            opacity: 0;
+            transition: all 0.5s ease-in-out;
+            translate: 0 250px;
+        }
+
+        #startButton {
+            cursor: pointer;
+        }
+    </style>
+
+
+
+</head>
+
+<body>
+
+    <span id="status">Loading...</span>
+
+    <div id="container">
+        <!-- <span class="visual" id="userPlaying"></span> -->
+        <span class="visual" id="aiPlaying"></span>
+    </div>
+
+    <div class="billie-text">
+        <span>Hi there, my name is Billie!</span>
+        <span>Plug in your MIDI keyboard</span>
+        <span>I will follow your lead</span>
+        <span id="startButton">Click here to start</span>
+    </div>
+
+</body>
+
+
+<script type="module">
+
+
+    /**
+     * Sets the status text on the page.
+     * @param {string} status - The status text to be displayed.
+     */
+    const setStatus = (status) => {
+        document.getElementById('status').innerText = status;
+    };
+
+    /**
+     * Triggers visual and opacity feedback for the specified element.
+     * @param {string} elementID - The ID of the element to trigger feedback for.
+     */
+    const triggerBillieFeedback = (elementID) => {
+        // Visual feedback
+        document.getElementById(elementID).style.transform = 'scale(1.4)';
+        setTimeout(() => {
+            document.getElementById(elementID).style.transform = 'scale(1)';
+        }, 100);
+
+        // Opacity feedback
+        document.getElementById(elementID).style.opacity = .5;
+        setTimeout(() => {
+            document.getElementById(elementID).style.opacity = 1;
+        }, 100);
+    };
+
+    /**
+     * Runs the Billie AI model.
+     */
+    const runBillie = async () => {
+        setStatus('Loading model...');
+        const music_rnn = new mm.MusicRNN('./models/basic_rnn');
+
+        setStatus('Initializing model...');
+        music_rnn.initialize().then(() => {
+            setStatus('AI Model initialized!');
+            console.log('Model initialized!');
+        });
+
+        const rnnPlayer = new mm.Player(false, {
+            run: (note) => {
+                console.info('Billie plays:', note);
+                triggerBillieFeedback('aiPlaying');
+            },
+            stop: () => {
+                console.log('stopped');
+            }
+        });
+
+        const userPlayer = new mm.Player(false, {
+            run: (note) => {
+                console.info('User plays:', note);
+            },
+            stop: () => {
+                console.log('stopped');
+            }
+        });
+
+        const billieText = document.querySelector('.billie-text').querySelectorAll('span');
+
+        // Loop through the span elements and enable them one by one with a delay
+        // to give the impression of a conversation
+        // Disable the previous span element before enabling the next one
+        // Start from the first element
+        billieText[0].style.opacity = 0;
+        billieText[0].style.display = 'block';
+        setTimeout(() => {
+            billieText[0].style.opacity = 1;
+        }, 500);
+
+        // Loop through the rest of the elements
+        for (let i = 1; i < billieText.length; i++) {
+            setTimeout(() => {
+                billieText[i - 1].style.opacity = 0; // Set opacity to 0 for fade out effect
+                setTimeout(() => {
+                    billieText[i - 1].style.display = 'none'; // Hide the element after it has faded out
+                    billieText[i].style.display = 'block';
+                    // Add another timeout for opacity change
+                    setTimeout(() => {
+                        billieText[i].style.opacity = 1;
+                    }, 500);
+                }, 500);
+            }, i * 3500); // Increased delay to 3.5 seconds to give the user more time to read
+        }
+
+        document.getElementById('startButton').addEventListener('click', () => {
+            initMIDI(music_rnn, rnnPlayer, userPlayer)
+        });
+    };
+
+    /**
+     * Initializes MIDI and sets up MIDI input devices.
+     * @param {Object} music_rnn - The MusicRNN object.
+     * @param {Object} rnnPlayer - The player for the AI model.
+     * @param {Object} userPlayer - The player for the user's input.
+     */
+    const initMIDI = async (music_rnn, rnnPlayer, userPlayer) => {
+        console.log('Initializing MIDI...');
+        document.getElementById('startButton').style.display = 'none';
+
+        WebMidi
+            .enable()
+            .then(onMIDIEnabled)
+            .catch(err => alert(err));
+
+        setStatus('Searching for MIDI devices...');
+
+        function onUserPlayNoteDown(noteForPlayer, noteForSequence) {
+            if (userPlayer.isPlaying()) {
+                userPlayer.stop();
+            }
+            userPlayer.start({ notes: [noteForPlayer], totalTime: 1 });
+            userPlayedNotes.notes.push(noteForSequence);
+            userPlayedNotes.totalTime += 0.5;
+            lastNotePlayedTime = Date.now();
+        }
+
+        // Object to store user played notes
+        let userPlayedNotes = {
+            notes: [],
+            totalTime: 0
+        };
+
+        // Variable to store the time when the last note was played
+        let lastNotePlayedTime = null;
+
+        const keyToNote = {
+            'a': 60, // C
+            'w': 61, // C#
+            's': 62, // D
+            'e': 63, // D#
+            'd': 64, // E
+            'f': 65, // F
+            't': 66, // F#
+            'g': 67, // G
+            'y': 68, // G#
+            'h': 69, // A
+            'u': 70, // A#
+            'j': 71, // B
+            'k': 72, // C
+            'o': 73, // C#
+            'l': 74, // D
+            'p': 75  // D#
+        }
+
+        document.addEventListener('keydown', function (e) {
+            if (userPlayer.isPlaying()) {
+                userPlayer.stop();
+            }
+            if (keyToNote[e.key]) {
+                let noteForPlayer = { pitch: keyToNote[e.key], startTime: 0, endTime: 1 };
+                let noteForSequence = { pitch: keyToNote[e.key], startTime: userPlayedNotes.totalTime, endTime: userPlayedNotes.totalTime + 1 };
+                onUserPlayNoteDown(noteForPlayer, noteForSequence);
+            }
+        });
+
+        function onMIDIEnabled() {
+            if (WebMidi.inputs.length < 1) {
+                console.log("No device detected.");
+                setStatus('No device detected. Plugin MIDI keyboard and reload the page.');
+            } else {
+                WebMidi.inputs.forEach((device, index) => {
+                    console.log(`${index}: ${device.name}`);
+                });
+
+                const midiDevice = WebMidi.inputs[0];
+                setStatus('MIDI device detected! ' + midiDevice.name + ' is ready to use.');
+
+                setTimeout(() => {
+                    setStatus(midiDevice.name);
+                }, 1000);
+
+                midiDevice.addListener('noteon', "all",
+                    function (e) {
+                        console.log("Received 'noteon' message (" + e.note.name + e.note.octave + ").");
+                        let noteForPlayer = { pitch: e.note.number, startTime: 0, endTime: 1 };
+                        let noteForSequence = { pitch: e.note.number, startTime: userPlayedNotes.totalTime, endTime: userPlayedNotes.totalTime + 1 };
+                        onUserPlayNoteDown(noteForPlayer, noteForSequence);
+                    }
+                );
+            }
+        }
+
+        setInterval(function () {
+            if (lastNotePlayedTime && Date.now() - lastNotePlayedTime >= 1100) {
+                console.log('2 seconds have passed since the last note was played');
+                lastNotePlayedTime = null; // Reset the last note played time
+                generateAIResponse();
+            }
+        }, 1000);
+
+        function generateAIResponse() {
+            if (userPlayedNotes.notes.length >= 2) {
+                const qns = mm.sequences.quantizeNoteSequence(userPlayedNotes, 4);
+                const rnn_steps = 40;
+                const rnn_temperature = 1;
+
+                music_rnn
+                    .continueSequence(qns, rnn_steps, rnn_temperature)
+                    .then((sample) => {
+                        rnnPlayer.start(sample);
+                        userPlayedNotes.notes = userPlayedNotes.notes.concat(sample.notes);
+                        userPlayedNotes.totalTime += sample.totalTime;
+                        console.log(userPlayedNotes);
+                        userPlayedNotes = {
+                            notes: [],
+                            totalTime: 0
+                        };
+                    });
+            }
+        };
+    };
+
+    runBillie();
+
+
+</script>
+
+</html>
