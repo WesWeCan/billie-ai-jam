@@ -157,6 +157,10 @@
 <script type="module">
 
 
+    const INSTRUMENT_AI = 5;
+    const INSTRUMENT_USER = 4;
+
+
     /**
      * Sets the status text on the page.
      * @param {string} status - The status text to be displayed.
@@ -196,7 +200,7 @@
             console.log('Model initialized!');
         });
 
-        const rnnPlayer = new mm.SoundFontPlayer('https://storage.googleapis.com/magentadata/js/soundfonts/salamander');
+        const rnnPlayer = new mm.SoundFontPlayer('https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus');
         rnnPlayer.callbackObject = {
             run: (note) => {
             console.info('Billie plays:', note);
@@ -309,8 +313,13 @@
                 userPlayer.stop();
             }
             if (keyToNote[e.key]) {
-                let noteForPlayer = { pitch: keyToNote[e.key], startTime: 0, endTime: 1 };
-                let noteForSequence = { pitch: keyToNote[e.key], startTime: userPlayedNotes.totalTime, endTime: userPlayedNotes.totalTime + 1 };
+                let noteForPlayer = { pitch: keyToNote[e.key], startTime: 0, endTime: 1};
+                let noteForSequence = { 
+                    pitch: keyToNote[e.key], 
+                    startTime: userPlayedNotes.totalTime, 
+                    endTime: userPlayedNotes.totalTime + 1 
+                
+                };
                 onUserPlayNoteDown(noteForPlayer, noteForSequence);
             }
         });
@@ -334,8 +343,20 @@
                 midiDevice.addListener('noteon', "all",
                     function (e) {
                         console.log("Received 'noteon' message (" + e.note.name + e.note.octave + ").");
-                        let noteForPlayer = { pitch: e.note.number, startTime: 0, endTime: 1 };
-                        let noteForSequence = { pitch: e.note.number, startTime: userPlayedNotes.totalTime, endTime: userPlayedNotes.totalTime + 1 };
+                        let noteForPlayer = { 
+                            pitch: e.note.number, 
+                            startTime: 0, 
+                            endTime: 1,
+                            program: INSTRUMENT_USER
+                        
+                        };
+                        let noteForSequence = { 
+                            pitch: e.note.number, 
+                            startTime: userPlayedNotes.totalTime, 
+                            endTime: userPlayedNotes.totalTime + 1,
+                        
+                        
+                        };
                         onUserPlayNoteDown(noteForPlayer, noteForSequence);
                     }
                 );
@@ -349,7 +370,6 @@
                 generateAIResponse();
             }
         }, 1000);
-
         function generateAIResponse() {
             if (userPlayedNotes.notes.length >= 2) {
                 const qns = mm.sequences.quantizeNoteSequence(userPlayedNotes, 4);
@@ -359,6 +379,9 @@
                 music_rnn
                     .continueSequence(qns, rnn_steps, rnn_temperature)
                     .then((sample) => {
+                        // Change the program of all notes
+                        sample.notes.forEach(note => note.program = INSTRUMENT_AI);
+
                         rnnPlayer.start(sample);
                         userPlayedNotes.notes = userPlayedNotes.notes.concat(sample.notes);
                         userPlayedNotes.totalTime += sample.totalTime;
