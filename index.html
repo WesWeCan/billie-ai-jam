@@ -196,24 +196,26 @@
             console.log('Model initialized!');
         });
 
-        const rnnPlayer = new mm.Player(false, {
+        const rnnPlayer = new mm.SoundFontPlayer('https://storage.googleapis.com/magentadata/js/soundfonts/salamander');
+        rnnPlayer.callbackObject = {
             run: (note) => {
-                console.info('Billie plays:', note);
-                triggerBillieFeedback('aiPlaying');
+            console.info('Billie plays:', note);
+            triggerBillieFeedback('aiPlaying');
             },
             stop: () => {
-                console.log('stopped');
+            console.log('stopped');
             }
-        });
+        };
 
-        const userPlayer = new mm.Player(false, {
+        const userPlayer = new mm.SoundFontPlayer('https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus');
+        userPlayer.callbackObject = {
             run: (note) => {
-                console.info('User plays:', note);
+            console.info('User plays:', note);
             },
             stop: () => {
-                console.log('stopped');
+            console.log('stopped');
             }
-        });
+        };
 
         const billieText = document.querySelector('.billie-text').querySelectorAll('span');
 
