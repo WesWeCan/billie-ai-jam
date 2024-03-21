@@ -176,8 +176,10 @@
     const triggerBillieFeedback = (elementID) => {
         // Visual feedback
         document.getElementById(elementID).style.transform = 'scale(1.4)';
+        document.getElementById(elementID).style.backgroundColor = 'red';
         setTimeout(() => {
             document.getElementById(elementID).style.transform = 'scale(1)';
+            document.getElementById(elementID).style.backgroundColor = elementID === 'userPlaying' ? '#00f' : '#a78cff';
         }, 100);
 
         // Opacity feedback
